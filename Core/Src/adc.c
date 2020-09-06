@@ -26,15 +26,12 @@
 
 ADC_HandleTypeDef hadc1;
 ADC_HandleTypeDef hadc2;
-DMA_HandleTypeDef hdma_adc1;
-DMA_HandleTypeDef hdma_adc2;
 
 /* ADC1 init function */
 void MX_ADC1_Init(void)
 {
   ADC_MultiModeTypeDef multimode = {0};
   ADC_AnalogWDGConfTypeDef AnalogWDGConfig = {0};
-  ADC_ChannelConfTypeDef sConfig = {0};
   ADC_InjectionConfTypeDef sConfigInjected = {0};
 
   /** Common config
@@ -43,13 +40,11 @@ void MX_ADC1_Init(void)
   hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
   hadc1.Init.Resolution = ADC_RESOLUTION_12B;
   hadc1.Init.ScanConvMode = ADC_SCAN_ENABLE;
-  hadc1.Init.ContinuousConvMode = ENABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
   hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 2;
-  hadc1.Init.DMAContinuousRequests = ENABLE;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc1.Init.LowPowerAutoWait = DISABLE;
   hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
@@ -67,50 +62,11 @@ void MX_ADC1_Init(void)
   /** Configure Analog WatchDog 1
   */
   AnalogWDGConfig.WatchdogNumber = ADC_ANALOGWATCHDOG_1;
-  AnalogWDGConfig.WatchdogMode = ADC_ANALOGWATCHDOG_SINGLE_REG;
-  AnalogWDGConfig.HighThreshold = 1800;
-  AnalogWDGConfig.LowThreshold = 1200;
-  AnalogWDGConfig.Channel = ADC_CHANNEL_2;
-  AnalogWDGConfig.ITMode = ENABLE;
-  if (HAL_ADC_AnalogWDGConfig(&hadc1, &AnalogWDGConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_2;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SingleDiff = ADC_SINGLE_ENDED;
-  sConfig.SamplingTime = ADC_SAMPLETIME_181CYCLES_5;
-  sConfig.OffsetNumber = ADC_OFFSET_NONE;
-  sConfig.Offset = 0;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_11;
-  sConfig.Rank = ADC_REGULAR_RANK_2;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure the regular channel to be monitored by WatchDog 2 or 3
-  */
-  AnalogWDGConfig.WatchdogNumber = ADC_ANALOGWATCHDOG_3;
+  AnalogWDGConfig.WatchdogMode = ADC_ANALOGWATCHDOG_SINGLE_INJEC;
   AnalogWDGConfig.HighThreshold = 1900;
   AnalogWDGConfig.LowThreshold = 1100;
-  if (HAL_ADC_AnalogWDGConfig(&hadc1, &AnalogWDGConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure the regular channel to be monitored by WatchDog 2 or 3
-  */
-  AnalogWDGConfig.WatchdogNumber = ADC_ANALOGWATCHDOG_2;
-  AnalogWDGConfig.HighThreshold = 4095;
-  AnalogWDGConfig.LowThreshold = 0;
-  AnalogWDGConfig.Channel = ADC_CHANNEL_11;
+  AnalogWDGConfig.Channel = ADC_CHANNEL_2;
+  AnalogWDGConfig.ITMode = DISABLE;
   if (HAL_ADC_AnalogWDGConfig(&hadc1, &AnalogWDGConfig) != HAL_OK)
   {
     Error_Handler();
@@ -120,8 +76,8 @@ void MX_ADC1_Init(void)
   sConfigInjected.InjectedChannel = ADC_CHANNEL_1;
   sConfigInjected.InjectedRank = ADC_INJECTED_RANK_1;
   sConfigInjected.InjectedSingleDiff = ADC_SINGLE_ENDED;
-  sConfigInjected.InjectedNbrOfConversion = 4;
-  sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+  sConfigInjected.InjectedNbrOfConversion = 2;
+  sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_19CYCLES_5;
   sConfigInjected.ExternalTrigInjecConvEdge = ADC_EXTERNALTRIGINJECCONV_EDGE_RISING;
   sConfigInjected.ExternalTrigInjecConv = ADC_EXTERNALTRIGINJECCONV_HRTIM_TRG2;
   sConfigInjected.AutoInjectedConv = DISABLE;
@@ -135,21 +91,8 @@ void MX_ADC1_Init(void)
   }
   /** Configure Injected Channel
   */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_2;
   sConfigInjected.InjectedRank = ADC_INJECTED_RANK_2;
-  if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Injected Channel
-  */
-  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_3;
-  if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Injected Channel
-  */
-  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_4;
   if (HAL_ADCEx_InjectedConfigChannel(&hadc1, &sConfigInjected) != HAL_OK)
   {
     Error_Handler();
@@ -157,27 +100,9 @@ void MX_ADC1_Init(void)
   /** Configure the injected channel to be monitored by WatchDog 2 or 3
   */
   AnalogWDGConfig.WatchdogNumber = ADC_ANALOGWATCHDOG_3;
-  AnalogWDGConfig.HighThreshold = 1900;
-  AnalogWDGConfig.LowThreshold = 1100;
+  AnalogWDGConfig.HighThreshold = 4095;
+  AnalogWDGConfig.LowThreshold = 0;
   AnalogWDGConfig.Channel = ADC_CHANNEL_1;
-  if (HAL_ADC_AnalogWDGConfig(&hadc1, &AnalogWDGConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure the injected channel to be monitored by WatchDog 2 or 3
-  */
-  if (HAL_ADC_AnalogWDGConfig(&hadc1, &AnalogWDGConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure the injected channel to be monitored by WatchDog 2 or 3
-  */
-  if (HAL_ADC_AnalogWDGConfig(&hadc1, &AnalogWDGConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure the injected channel to be monitored by WatchDog 2 or 3
-  */
   if (HAL_ADC_AnalogWDGConfig(&hadc1, &AnalogWDGConfig) != HAL_OK)
   {
     Error_Handler();
@@ -188,7 +113,6 @@ void MX_ADC1_Init(void)
 void MX_ADC2_Init(void)
 {
   ADC_AnalogWDGConfTypeDef AnalogWDGConfig = {0};
-  ADC_ChannelConfTypeDef sConfig = {0};
   ADC_InjectionConfTypeDef sConfigInjected = {0};
 
   /** Common config
@@ -197,13 +121,11 @@ void MX_ADC2_Init(void)
   hadc2.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
   hadc2.Init.Resolution = ADC_RESOLUTION_12B;
   hadc2.Init.ScanConvMode = ADC_SCAN_ENABLE;
-  hadc2.Init.ContinuousConvMode = ENABLE;
+  hadc2.Init.ContinuousConvMode = DISABLE;
   hadc2.Init.DiscontinuousConvMode = DISABLE;
-  hadc2.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc2.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc2.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc2.Init.NbrOfConversion = 3;
-  hadc2.Init.DMAContinuousRequests = ENABLE;
+  hadc2.Init.NbrOfConversion = 1;
+  hadc2.Init.DMAContinuousRequests = DISABLE;
   hadc2.Init.EOCSelection = ADC_EOC_SEQ_CONV;
   hadc2.Init.LowPowerAutoWait = DISABLE;
   hadc2.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
@@ -214,56 +136,11 @@ void MX_ADC2_Init(void)
   /** Configure Analog WatchDog 1
   */
   AnalogWDGConfig.WatchdogNumber = ADC_ANALOGWATCHDOG_1;
-  AnalogWDGConfig.WatchdogMode = ADC_ANALOGWATCHDOG_ALL_INJEC;
+  AnalogWDGConfig.WatchdogMode = ADC_ANALOGWATCHDOG_SINGLE_INJEC;
   AnalogWDGConfig.HighThreshold = 4095;
   AnalogWDGConfig.LowThreshold = 0;
-  AnalogWDGConfig.ITMode = ENABLE;
-  if (HAL_ADC_AnalogWDGConfig(&hadc2, &AnalogWDGConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_4;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SingleDiff = ADC_SINGLE_ENDED;
-  sConfig.SamplingTime = ADC_SAMPLETIME_61CYCLES_5;
-  sConfig.OffsetNumber = ADC_OFFSET_NONE;
-  sConfig.Offset = 0;
-  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_3;
-  sConfig.Rank = ADC_REGULAR_RANK_2;
-  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Regular Channel
-  */
-  sConfig.Channel = ADC_CHANNEL_2;
-  sConfig.Rank = ADC_REGULAR_RANK_3;
-  if (HAL_ADC_ConfigChannel(&hadc2, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure the regular channel to be monitored by WatchDog 2 or 3
-  */
-  AnalogWDGConfig.WatchdogNumber = ADC_ANALOGWATCHDOG_2;
-  AnalogWDGConfig.Channel = ADC_CHANNEL_4;
-  if (HAL_ADC_AnalogWDGConfig(&hadc2, &AnalogWDGConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure the regular channel to be monitored by WatchDog 2 or 3
-  */
-  AnalogWDGConfig.WatchdogNumber = ADC_ANALOGWATCHDOG_3;
-  AnalogWDGConfig.HighThreshold = 2500;
-  AnalogWDGConfig.LowThreshold = 900;
-  AnalogWDGConfig.Channel = ADC_CHANNEL_3;
+  AnalogWDGConfig.Channel = ADC_CHANNEL_1;
+  AnalogWDGConfig.ITMode = DISABLE;
   if (HAL_ADC_AnalogWDGConfig(&hadc2, &AnalogWDGConfig) != HAL_OK)
   {
     Error_Handler();
@@ -273,8 +150,8 @@ void MX_ADC2_Init(void)
   sConfigInjected.InjectedChannel = ADC_CHANNEL_1;
   sConfigInjected.InjectedRank = ADC_INJECTED_RANK_1;
   sConfigInjected.InjectedSingleDiff = ADC_SINGLE_ENDED;
-  sConfigInjected.InjectedNbrOfConversion = 4;
-  sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_2CYCLES_5;
+  sConfigInjected.InjectedNbrOfConversion = 3;
+  sConfigInjected.InjectedSamplingTime = ADC_SAMPLETIME_19CYCLES_5;
   sConfigInjected.ExternalTrigInjecConvEdge = ADC_EXTERNALTRIGINJECCONV_EDGE_RISING;
   sConfigInjected.ExternalTrigInjecConv = ADC_EXTERNALTRIGINJECCONV_HRTIM_TRG2;
   sConfigInjected.AutoInjectedConv = DISABLE;
@@ -288,6 +165,7 @@ void MX_ADC2_Init(void)
   }
   /** Configure Injected Channel
   */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_2;
   sConfigInjected.InjectedRank = ADC_INJECTED_RANK_2;
   if (HAL_ADCEx_InjectedConfigChannel(&hadc2, &sConfigInjected) != HAL_OK)
   {
@@ -295,15 +173,27 @@ void MX_ADC2_Init(void)
   }
   /** Configure Injected Channel
   */
+  sConfigInjected.InjectedChannel = ADC_CHANNEL_3;
   sConfigInjected.InjectedRank = ADC_INJECTED_RANK_3;
   if (HAL_ADCEx_InjectedConfigChannel(&hadc2, &sConfigInjected) != HAL_OK)
   {
     Error_Handler();
   }
-  /** Configure Injected Channel
+  /** Configure the injected channel to be monitored by WatchDog 2 or 3
   */
-  sConfigInjected.InjectedRank = ADC_INJECTED_RANK_4;
-  if (HAL_ADCEx_InjectedConfigChannel(&hadc2, &sConfigInjected) != HAL_OK)
+  AnalogWDGConfig.WatchdogNumber = ADC_ANALOGWATCHDOG_2;
+  AnalogWDGConfig.Channel = ADC_CHANNEL_2;
+  if (HAL_ADC_AnalogWDGConfig(&hadc2, &AnalogWDGConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure the injected channel to be monitored by WatchDog 2 or 3
+  */
+  AnalogWDGConfig.WatchdogNumber = ADC_ANALOGWATCHDOG_3;
+  AnalogWDGConfig.HighThreshold = 2500;
+  AnalogWDGConfig.LowThreshold = 900;
+  AnalogWDGConfig.Channel = ADC_CHANNEL_3;
+  if (HAL_ADC_AnalogWDGConfig(&hadc2, &AnalogWDGConfig) != HAL_OK)
   {
     Error_Handler();
   }
@@ -345,23 +235,6 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(PIN_OCI_COMP4_ADC1_11_GPIO_Port, &GPIO_InitStruct);
 
-    /* ADC1 DMA Init */
-    /* ADC1 Init */
-    hdma_adc1.Instance = DMA1_Channel1;
-    hdma_adc1.Init.Direction = DMA_PERIPH_TO_MEMORY;
-    hdma_adc1.Init.PeriphInc = DMA_PINC_DISABLE;
-    hdma_adc1.Init.MemInc = DMA_MINC_ENABLE;
-    hdma_adc1.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-    hdma_adc1.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-    hdma_adc1.Init.Mode = DMA_CIRCULAR;
-    hdma_adc1.Init.Priority = DMA_PRIORITY_VERY_HIGH;
-    if (HAL_DMA_Init(&hdma_adc1) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    __HAL_LINKDMA(adcHandle,DMA_Handle,hdma_adc1);
-
   /* USER CODE BEGIN ADC1_MspInit 1 */
 
   /* USER CODE END ADC1_MspInit 1 */
@@ -388,23 +261,6 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-    /* ADC2 DMA Init */
-    /* ADC2 Init */
-    hdma_adc2.Instance = DMA1_Channel2;
-    hdma_adc2.Init.Direction = DMA_PERIPH_TO_MEMORY;
-    hdma_adc2.Init.PeriphInc = DMA_PINC_DISABLE;
-    hdma_adc2.Init.MemInc = DMA_MINC_ENABLE;
-    hdma_adc2.Init.PeriphDataAlignment = DMA_PDATAALIGN_HALFWORD;
-    hdma_adc2.Init.MemDataAlignment = DMA_MDATAALIGN_HALFWORD;
-    hdma_adc2.Init.Mode = DMA_CIRCULAR;
-    hdma_adc2.Init.Priority = DMA_PRIORITY_VERY_HIGH;
-    if (HAL_DMA_Init(&hdma_adc2) != HAL_OK)
-    {
-      Error_Handler();
-    }
-
-    __HAL_LINKDMA(adcHandle,DMA_Handle,hdma_adc2);
 
   /* USER CODE BEGIN ADC2_MspInit 1 */
 
@@ -435,9 +291,6 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
     HAL_GPIO_DeInit(GPIOA, PIN_OCV_ADC1_IN1_Pin|PIN_RAW70_ADC1_IN2_Pin|PIN_RAW30_ADC1_IN4_Pin);
 
     HAL_GPIO_DeInit(PIN_OCI_COMP4_ADC1_11_GPIO_Port, PIN_OCI_COMP4_ADC1_11_Pin);
-
-    /* ADC1 DMA DeInit */
-    HAL_DMA_DeInit(adcHandle->DMA_Handle);
 
     /* ADC1 interrupt Deinit */
   /* USER CODE BEGIN ADC1:ADC1_2_IRQn disable */
@@ -470,9 +323,6 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
     PA7     ------> ADC2_IN4
     */
     HAL_GPIO_DeInit(GPIOA, PIN_OCI_ADC2_IN1_Pin|PIN_TEMP_ADC2_IN2_Pin|V16_ADC2_IN3_Pin|PIN_OCV_COMP2_ADC2_4_Pin);
-
-    /* ADC2 DMA DeInit */
-    HAL_DMA_DeInit(adcHandle->DMA_Handle);
 
     /* ADC2 interrupt Deinit */
   /* USER CODE BEGIN ADC2:ADC1_2_IRQn disable */

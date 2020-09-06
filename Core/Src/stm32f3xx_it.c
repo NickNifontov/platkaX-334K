@@ -23,6 +23,7 @@
 #include "stm32f3xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "plxADC.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,17 +57,11 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
-extern DMA_HandleTypeDef hdma_adc1;
-extern DMA_HandleTypeDef hdma_adc2;
 extern ADC_HandleTypeDef hadc1;
 extern ADC_HandleTypeDef hadc2;
-extern DMA_HandleTypeDef hdma_dac1_ch2;
-extern DMA_HandleTypeDef hdma_dac2_ch1;
-extern DAC_HandleTypeDef hdac1;
-extern DAC_HandleTypeDef hdac2;
 extern HRTIM_HandleTypeDef hhrtim1;
-extern TIM_HandleTypeDef htim6;
-extern TIM_HandleTypeDef htim7;
+extern DMA_HandleTypeDef hdma_usart1_tx;
+extern DMA_HandleTypeDef hdma_usart1_rx;
 extern UART_HandleTypeDef huart1;
 /* USER CODE BEGIN EV */
 
@@ -223,34 +218,6 @@ void PVD_IRQHandler(void)
 }
 
 /**
-  * @brief This function handles DMA1 channel1 global interrupt.
-  */
-void DMA1_Channel1_IRQHandler(void)
-{
-  /* USER CODE BEGIN DMA1_Channel1_IRQn 0 */
-
-  /* USER CODE END DMA1_Channel1_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc1);
-  /* USER CODE BEGIN DMA1_Channel1_IRQn 1 */
-
-  /* USER CODE END DMA1_Channel1_IRQn 1 */
-}
-
-/**
-  * @brief This function handles DMA1 channel2 global interrupt.
-  */
-void DMA1_Channel2_IRQHandler(void)
-{
-  /* USER CODE BEGIN DMA1_Channel2_IRQn 0 */
-
-  /* USER CODE END DMA1_Channel2_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_adc2);
-  /* USER CODE BEGIN DMA1_Channel2_IRQn 1 */
-
-  /* USER CODE END DMA1_Channel2_IRQn 1 */
-}
-
-/**
   * @brief This function handles DMA1 channel4 global interrupt.
   */
 void DMA1_Channel4_IRQHandler(void)
@@ -258,7 +225,7 @@ void DMA1_Channel4_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Channel4_IRQn 0 */
 
   /* USER CODE END DMA1_Channel4_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_dac1_ch2);
+  HAL_DMA_IRQHandler(&hdma_usart1_tx);
   /* USER CODE BEGIN DMA1_Channel4_IRQn 1 */
 
   /* USER CODE END DMA1_Channel4_IRQn 1 */
@@ -272,7 +239,7 @@ void DMA1_Channel5_IRQHandler(void)
   /* USER CODE BEGIN DMA1_Channel5_IRQn 0 */
 
   /* USER CODE END DMA1_Channel5_IRQn 0 */
-  HAL_DMA_IRQHandler(&hdma_dac2_ch1);
+  HAL_DMA_IRQHandler(&hdma_usart1_rx);
   /* USER CODE BEGIN DMA1_Channel5_IRQn 1 */
 
   /* USER CODE END DMA1_Channel5_IRQn 1 */
@@ -284,7 +251,21 @@ void DMA1_Channel5_IRQHandler(void)
 void ADC1_2_IRQHandler(void)
 {
   /* USER CODE BEGIN ADC1_2_IRQn 0 */
-
+	/*
+	BufferInd++;
+	BufferIndOC++;
+	if (BufferInd>=sizeBuffer) {
+		BufferInd=0;
+	}
+	if (BufferIndOC>=sizeBuffer) {
+		BufferIndOC=0;
+	}
+	GetADC1();
+	GetADC2();
+	CalcFlag=1;
+  __HAL_ADC_CLEAR_FLAG(&hadc1, ADC_FLAG_JEOS);
+  __HAL_ADC_CLEAR_FLAG(&hadc2, ADC_FLAG_JEOS);
+  */
   /* USER CODE END ADC1_2_IRQn 0 */
   HAL_ADC_IRQHandler(&hadc1);
   HAL_ADC_IRQHandler(&hadc2);
@@ -319,36 +300,6 @@ void EXTI15_10_IRQHandler(void)
   /* USER CODE BEGIN EXTI15_10_IRQn 1 */
 
   /* USER CODE END EXTI15_10_IRQn 1 */
-}
-
-/**
-  * @brief This function handles TIM6 global and DAC1 underrun error interrupts.
-  */
-void TIM6_DAC1_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM6_DAC1_IRQn 0 */
-
-  /* USER CODE END TIM6_DAC1_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim6);
-  HAL_DAC_IRQHandler(&hdac1);
-  /* USER CODE BEGIN TIM6_DAC1_IRQn 1 */
-
-  /* USER CODE END TIM6_DAC1_IRQn 1 */
-}
-
-/**
-  * @brief This function handles TIM7 global and DAC2 underrun error interrupts.
-  */
-void TIM7_DAC2_IRQHandler(void)
-{
-  /* USER CODE BEGIN TIM7_DAC2_IRQn 0 */
-
-  /* USER CODE END TIM7_DAC2_IRQn 0 */
-  HAL_TIM_IRQHandler(&htim7);
-  HAL_DAC_IRQHandler(&hdac2);
-  /* USER CODE BEGIN TIM7_DAC2_IRQn 1 */
-
-  /* USER CODE END TIM7_DAC2_IRQn 1 */
 }
 
 /**

@@ -32,7 +32,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "plxOC_V.h"
+#include "plxOC_I.h"
+#include "plxADC.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -59,11 +61,154 @@
 void SystemClock_Config(void);
 static void MX_NVIC_Init(void);
 /* USER CODE BEGIN PFP */
-
+void PWM_OutputOFF(void);
+void PWM_OutputON(void);
+void ResetHRTIMdef(void);
+void StartHRTIM(void);
+void StopHRTIM(void);
+void SetDacs(void);
+void ResetDacs(void);
+void SetPWMCycle(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void PWM_OutputOFF(void)
+{
+	HRTIM1->sCommonRegs.ODISR= HRTIM_ODISR_TB1ODIS + HRTIM_ODISR_TB2ODIS;  // Disable HRTIM's output
+}
+
+void PWM_OutputON(void)
+{
+	HRTIM1->sCommonRegs.OENR = HRTIM_OENR_TB1OEN + HRTIM_OENR_TB2OEN;  //Enable HRTIM's outputs
+}
+
+void ResetHRTIMdef(void)
+{
+	HRTIM1->sTimerxRegs[1].CMP2xR=PULS_A_END;
+	HRTIM1->sTimerxRegs[1].CMP4xR=PULS_B_END;
+	TIM1->CCR1=0;
+	TIM1->CCR2=0;
+	TOP_BOTTOM=0;
+	Sinus_Ind=0;
+	SetDacs();
+	ResetADCBuff(plxOCV,sizeBuffer);
+	ResetADCBuff(plxOCI,sizeBuffer);
+	BufferIndOC=0;
+}
+
+void StartHRTIM(void)
+{
+	PWM_OutputON(); //Enable HRTIM's outputs
+	HAL_HRTIM_WaveformCountStart_IT(&hhrtim1, HRTIM_TIMERID_MASTER +  HRTIM_TIMERID_TIMER_B); // Start HRTIM's Master TIMER and TIMER B
+
+}
+
+void StopHRTIM(void)
+{
+	PWM_OutputOFF(); // Disable HRTIM's output
+	HAL_HRTIM_WaveformCountStop_IT(&hhrtim1, HRTIM_TIMERID_MASTER +  HRTIM_TIMERID_TIMER_B); // Stop HRTIM's Master TIMER and TIMER B
+	ResetHRTIMdef();
+}
+
+void SetDacs(void)
+{
+	DAC2->DHR12R1 = Current_Level;
+	DAC1->DHR12R2 = OC_V_Table[Sinus_Ind];
+}
+
+void ResetDacs(void)
+{
+	DAC2->DHR12R1 = Current_Level_Reset;
+	DAC1->DHR12R2 = Voltage_Level_Reset;
+}
+
+/*void HAL_HRTIM_Compare2EventCallback(HRTIM_HandleTypeDef * hhrtim,
+                                              uint32_t TimerIdx)
+{
+	ResetDacs();
+	SetPWMCycle();
+	SetDacs();
+}*/
+
+void SetPWMCycle(void)
+{
+	uint32_t a_puls=PULS_A_BEGIN+(uint32_t)(5*OC_V_Table[Sinus_Ind]);
+	uint32_t b_puls=PULS_B_BEGIN+(uint32_t)(5*OC_V_Table[Sinus_Ind]);
+
+	if (a_puls>PULS_A_END) {
+		a_puls=PULS_A_END;
+	}
+
+	if (b_puls>PULS_B_END) {
+		b_puls=PULS_B_END;
+	}
+
+	HRTIM1->sTimerxRegs[1].CMP2xR=a_puls;
+	HRTIM1->sTimerxRegs[1].CMP4xR=b_puls;
+}
+
+void HAL_HRTIM_RepetitionEventCallback(HRTIM_HandleTypeDef * hhrtim,
+                                              uint32_t TimerIdx)
+{
+	ResetDacs();
+
+	if (Sinus_Ind==Sinus_Table_Resolution-1)
+	{
+		//Sinus_Ind=0;
+		TIM1->CCR1=0;
+		TIM1->CCR2=0;
+		PWM_OutputOFF();
+		//HRTIM1->sMasterRegs.MREP=4;
+	}
+
+	Sinus_Ind++;
+
+	if (Sinus_Ind>=MAX_SIN) {
+			Sinus_Ind=0;
+			if (TOP_BOTTOM==0) {
+				TIM1->CCR1=1535;
+				TIM1->CCR2=0;
+				TOP_BOTTOM=1; //next bottom
+			} else {
+				TIM1->CCR1=0;
+				TIM1->CCR2=1553;
+				TOP_BOTTOM=0; // next top
+			}
+			PWM_OutputON();
+			//HRTIM1->sMasterRegs.MREP=0;
+	}
+
+	SetPWMCycle();
+
+	SetDacs();
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if (HAL_GPIO_ReadPin(PIN_PEREK_GPIO_Port, PIN_PEREK_Pin)==GPIO_PIN_SET)
+		{
+			StartHRTIM();
+		} else {
+			StopHRTIM();
+		}
+}
+
+void HAL_ADCEx_InjectedConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+	BufferInd++;
+	BufferIndOC++;
+	if (BufferInd>=sizeBuffer) {
+		BufferInd=0;
+	}
+	if (BufferIndOC>=sizeBuffer) {
+		BufferIndOC=0;
+	}
+	GetADC1();
+	GetADC2();
+	CalcFlag=1;
+}
 
 /* USER CODE END 0 */
 
@@ -102,8 +247,6 @@ int main(void)
   MX_USART1_UART_Init();
   MX_DAC1_Init();
   MX_DAC2_Init();
-  MX_TIM6_Init();
-  MX_TIM7_Init();
   MX_ADC1_Init();
   MX_ADC2_Init();
   MX_COMP2_Init();
@@ -118,12 +261,97 @@ int main(void)
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
 
+  //*****************************************************//
+  //Start LED_V , LED_I Timer2
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
+  //*****************************************************//
+
+  //*****************************************************//
+  //Start Buzzer Timer15
+  HAL_TIM_PWM_Start(&htim15, TIM_CHANNEL_1);
+  //*****************************************************//
+
+  //*****************************************************//
+  //Start Cooler Timer16
+  HAL_TIM_PWM_Start(&htim16, TIM_CHANNEL_1);
+  //*****************************************************//
+
+  //*****************************************************//
+  //Start IGLA Timer17
+  HAL_TIM_PWM_Start(&htim17, TIM_CHANNEL_1);
+  //*****************************************************//
+
+  //*****************************************************//
+  //Start 50HZ Timer1
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+  //*****************************************************//
+
+  //*****************************************************//
+  //Start DAC2 Out1 Current
+  HAL_DAC_Start(&hdac2, DAC_CHANNEL_1);
+  //*****************************************************//
+
+  //*****************************************************//
+  //Start DAC1 Out2 Volatge
+  HAL_DAC_Start(&hdac1, DAC_CHANNEL_2);
+  //*****************************************************//
+
+  //*****************************************************//
+  //Start COMP2 (Voltage) and COMP4 (Current)
+  HAL_COMP_Start(&hcomp2);
+  HAL_COMP_Start(&hcomp4);
+  //*****************************************************//
+
+  //*****************************************************//
+  //Pre-Init Global
+  ResetADCBuff(plxV16,sizeBuffer);
+  ResetADCBuff(plxRAW,sizeBuffer);
+  ResetADCBuff(plxTEMP,sizeBuffer);
+  BufferInd=0;
+  ResetHRTIMdef();
+  //*****************************************************//
+
+  //*****************************************************//
+  //Start ADC1 and ADC2
+  //HAL_ADC_Start_DMA(&hadc1,
+  //                        (uint32_t *)ADC1_Data,
+  //						  ADC1_Cnt_Channel);
+  HAL_ADCEx_Calibration_Start(&hadc2,ADC_SINGLE_ENDED);
+  HAL_ADCEx_Calibration_Start(&hadc1,ADC_SINGLE_ENDED);
+  HAL_ADCEx_InjectedStart(&hadc1);
+  HAL_ADCEx_InjectedStart_IT(&hadc2);
+  //*****************************************************//
+
+  //*****************************************************//
+  //Unblock Driver Output
+  HAL_GPIO_WritePin(PIN_DRV_GPIO_Port, PIN_DRV_Pin, GPIO_PIN_RESET);
+  //*****************************************************//
+
+  //*****************************************************//
+  //Start
+  HAL_GPIO_EXTI_Callback(PIN_PEREK_Pin);
+  //*****************************************************//
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  TIM15->CCR1=0; //stop Buzzer
+  HAL_Delay(3000);
+  StartHRTIM();
+
   while (1)
   {
+	hiwdg.Instance->KR=IWDG_KEY_RELOAD; // reload IWDG
+
+	if (CalcFlag==1) {
+		gV16=FilterWindowMedium(plxV16, sizeBuffer, sizeWindow);
+		gRAW=FilterWindowMedium(plxRAW, sizeBuffer, sizeWindow);
+		gTEMP=FilterWindowMedium(plxTEMP, sizeBuffer, sizeWindow);
+		CalcFlag=0;
+	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -196,35 +424,23 @@ static void MX_NVIC_Init(void)
   /* HRTIM1_FLT_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(HRTIM1_FLT_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(HRTIM1_FLT_IRQn);
-  /* DMA1_Channel1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 1, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-  /* DMA1_Channel2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, 1, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
   /* ADC1_2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(ADC1_2_IRQn, 1, 0);
   HAL_NVIC_EnableIRQ(ADC1_2_IRQn);
-  /* DMA1_Channel4_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 2, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
-  /* DMA1_Channel5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 2, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
-  /* TIM6_DAC1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM6_DAC1_IRQn, 2, 0);
-  HAL_NVIC_EnableIRQ(TIM6_DAC1_IRQn);
-  /* TIM7_DAC2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM7_DAC2_IRQn, 2, 0);
-  HAL_NVIC_EnableIRQ(TIM7_DAC2_IRQn);
   /* PVD_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(PVD_IRQn, 3, 0);
   HAL_NVIC_EnableIRQ(PVD_IRQn);
   /* EXTI15_10_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 3, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+  /* DMA1_Channel4_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel4_IRQn, 4, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel4_IRQn);
+  /* DMA1_Channel5_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel5_IRQn, 4, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel5_IRQn);
   /* USART1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(USART1_IRQn, 4, 0);
+  HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
   HAL_NVIC_EnableIRQ(USART1_IRQn);
 }
 
