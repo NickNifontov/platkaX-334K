@@ -35,6 +35,7 @@
 #include "plxOC_V.h"
 #include "plxOC_I.h"
 #include "plxADC.h"
+#include "plxPID.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -54,7 +55,7 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+float resultPID = 0.0f;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -134,8 +135,8 @@ void ResetDacs(void)
 
 void SetPWMCycle(void)
 {
-	uint32_t a_puls=PULS_A_BEGIN+(uint32_t)(5*OC_V_Table[Sinus_Ind]);
-	uint32_t b_puls=PULS_B_BEGIN+(uint32_t)(5*OC_V_Table[Sinus_Ind]);
+	uint32_t a_puls=PULS_A_BEGIN+(uint32_t)(4*OC_V_Table[Sinus_Ind]);
+	uint32_t b_puls=PULS_B_BEGIN+(uint32_t)(4*OC_V_Table[Sinus_Ind]);
 
 	if (a_puls>PULS_A_END) {
 		a_puls=PULS_A_END;
@@ -350,6 +351,34 @@ int main(void)
 		gV16=FilterWindowMedium(plxV16, sizeBuffer, sizeWindow);
 		gRAW=FilterWindowMedium(plxRAW, sizeBuffer, sizeWindow);
 		gTEMP=FilterWindowMedium(plxTEMP, sizeBuffer, sizeWindow);
+
+		hiwdg.Instance->KR=IWDG_KEY_RELOAD; // reload IWDG
+
+		gOCV=FilterWindowMedium(plxOCV, sizeBuffer, sizeWindow);
+		gOCI=FilterWindowMedium(plxOCI, sizeBuffer, sizeWindow);
+
+		hiwdg.Instance->KR=IWDG_KEY_RELOAD; // reload IWDG
+
+		// Volatge
+		resultPID = 0.0f;
+		pid_SetReference(2.2); //reference voltage opora
+		pid_SetSaturation(-40000, 40000);
+		pid_SetFeedback(gOCV, 0.0002);
+		pid_SetCoefficient(50, 0, 0, 0, 0);
+		pid_Compute();
+		resultPID = pid_Get();
+
+		// Current
+		/*resultPID = 0.0f;
+		pid_SetReference(2.2); //reference voltage current
+		pid_SetSaturation(-40000, 40000);
+		pid_SetFeedback(gOCV, 0.0002);
+		pid_SetCoefficient(10, 0, 0, 0, 0);
+		pid_Compute();
+		resultPID = pid_Get();*/
+
+
+
 		CalcFlag=0;
 	}
     /* USER CODE END WHILE */
